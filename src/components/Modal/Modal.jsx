@@ -1,29 +1,21 @@
 //example of using OnClick event for Overlay
 //and example of using componentDidmount for onKeyDown event, to close Modal by "Escape" key.
 
-import { Component } from 'react'
-import { BsHeartFill, BsFillEyeFill, BsFillCloudArrowDownFill, BsXLg } from "react-icons/bs"
+import { useEffect } from 'react';
+import PropTypes from 'prop-types';
+import { BsHeartFill, BsFillEyeFill, BsFillCloudArrowDownFill, BsXLg } from "react-icons/bs";
 
-
-export default class Modal extends Component  {
-
-  componentDidMount () {
-    window.addEventListener('keydown', this.keyDownEscape)
-  }
-    
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.keyDownEscape)
-  }
+export default function Modal({ currentImage, onClose }) { 
   
-
-  keyDownEscape =(e) => {
-  e.code === 'Escape' &&  this.props.onClose()
+  const keyDownEscape =(e) => {
+    e.code === 'Escape' &&  onClose()
   }
-    
 
-render() {
-  
-    const { currentImage, onClose } = this.props
+  useEffect(() => {   
+    window.addEventListener('keydown', keyDownEscape);
+    return () => window.removeEventListener('keydown', keyDownEscape);
+  }, []);
+
     const { largeImageURL, tags, user, userImageURL, pageURL, likes, views, downloads} = currentImage;
   
   return (
@@ -42,6 +34,31 @@ render() {
       </div>
     </div>
   )
-  }
 }
 
+Modal.defaultProps = {
+  currentImage: PropTypes.shape({
+    largeImageURL: '../../images/noPhoto.png',
+    tags: '',
+    user: 'Unknown',
+    userImageURL: '../../images/noAvatar.png',
+    pageURL: '#',
+    likes: 0,
+    views: 0,
+    downloads: 0,
+  })
+}
+
+Modal.propType = {
+  onClose: PropTypes.func,
+  currentImage: PropTypes.shape({
+    largeImageURL: PropTypes.string.isRequired,
+    tags: PropTypes.string.isRequired,
+    user: PropTypes.string.isRequired,
+    userImageURL: PropTypes.string.isRequired,
+    pageURL: PropTypes.string.isRequired,
+    likes: PropTypes.number.isRequired,
+    views: PropTypes.number.isRequired,
+    downloads: PropTypes.number.isRequired,
+  })
+}
