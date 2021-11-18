@@ -1,80 +1,83 @@
-import React, { Component } from 'react'
+import { useState, useEffect } from 'react'
 import ImageGalleryItem from './ImageGalleryItem/ImageGalleryItem.jsx'
 import Button from '../Button/Button.jsx'
 import Loader from '../Loader/Loader.jsx'
 
-export default class ImageGallery extends Component {
 
-  state = {
-    imgGallery: [],
-    totalHits: 0,
-    page: 0,
-    isLoading: false
-  }
+export default function ImageGallery ({searchQuery, viewImage}) {
 
-  API_KEY = '23041977-a95e3e3a8961062fc7edd2a7d';
-  PER_PAGE = 12;
-  BASE_URL = `https://pixabay.com/api/?key=${this.API_KEY}&image_type=photo&orientation=horizontal&per_page=${this.PER_PAGE}`;
+const API_KEY = '23041977-a95e3e3a8961062fc7edd2a7d';
+const PER_PAGE = 12;
+const BASE_URL = `https://pixabay.com/api/?key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=${PER_PAGE}`;
 
+  const [imgGallery, setImgGallery] = useState([]);
+  const [totalHits, setTotalHits] = useState(0);
+  const [page, setPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.searchQuery !== this.props.searchQuery) {
-      this.setState({ isLoading: true, imgGallery: [], page: 1 }, this.loadItems)
-    }
-  }
-
-
-  loadItems = () => {    
-          fetch(`${this.BASE_URL}&q=${this.props.searchQuery}&page=${this.state.page}`)
+  useEffect(() => {
+    if (searchQuery !== '') {
+      setIsLoading(true);
+      setImgGallery([]);
+      fetch(`${BASE_URL}&q=${searchQuery}&page=1`)
         .then(res => res.json())
-        .then(res =>
-              this.setState(prevState =>
-                ({ isLoading: false, imgGallery: prevState.imgGallery.concat(res.hits), totalHits: res.totalHits })))
-        .finally(() => this.state.imgGallery.length > 11 && this.pageScroll())
-  }
+        .then(res => {
+          setPage(1);
+          setImgGallery(res.hits);
+          setTotalHits(res.totalHits);
+          setIsLoading(false)
+        })
+    }
+  }, [searchQuery]);
 
-  pageIncrement = () => {
-    this.setState(prevState => ({ isLoading: true, page: prevState.page + 1 }), this.loadItems)
-  }
-  
-  pageScroll = () => {
+  useEffect(() => {
+    if (page >= 2) {
+      setIsLoading(true);
+      fetch(`${BASE_URL}&q=${searchQuery}&page=${page}`)
+        .then(res => res.json())
+        .then(res => {
+          setImgGallery(prev => prev.concat(res.hits));
+          setTotalHits(totalHits);
+          setIsLoading(false);
+          pageScroll();
+      })
+    }
+  }, [page]);
+
+
+  const pageScroll = () => {
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: 'smooth',
     })
   }
 
-  viewImage = (id) => {
-    this.props.viewImage(
-      this.state.imgGallery.find(item => item.id === id)
+  const pageIncrement = () => {
+    setPage(prev => prev + 1)
+  }
+
+  const getItem = (id) => {
+    viewImage(imgGallery.find(item => item.id === id))
+  }
+
+
+  return (
+    <>
+      {imgGallery.length !== 0 && 
+      <ul className="ImageGallery">
+          {imgGallery.map(item =>
+            <ImageGalleryItem key={item.id} onClick={() => getItem(item.id)} imgSrc={item.webformatURL} tags={item.tags} />)}
+      </ul>
+      }
+      {page !== 0 && imgGallery.length === 0 && !isLoading &&
+        <h1>Sorry, but is no pictures with tag "{searchQuery}" there .</h1>
+      }
+      {isLoading &&
+        <Loader />
+      }
+      {!isLoading && imgGallery.length !== totalHits &&
+        <Button onClick={() => pageIncrement()} />
+      }
+    </>
     )
-  }
-
-
-  render() {
-    const { imgGallery, page, isLoading, totalHits} = this.state
-
-    return (
-      <>
-        {imgGallery.length !== 0 && 
-        <ul className="ImageGallery">
-            {imgGallery.map(item =>
-              <ImageGalleryItem key={item.id} onClick={() => this.viewImage(item.id)} imgSrc={item.webformatURL} tags={item.tags} />)}
-        </ul>
-        }
-        {page !== 0 && imgGallery.length === 0 && !isLoading &&
-          <h1>Sorry, but is no pictures with tag "{this.props.searchQuery}" there .</h1>
-        }
-        {isLoading &&
-          <Loader />
-        }
-        {!isLoading && imgGallery.length !== totalHits &&
-          <Button onClick={() => this.pageIncrement()} />
-        }
-      </>
-      )
-  }
 }
-
-// eslint-disable-next-line
-//((imgGallery.length % this.PER_PAGE) == false) &&
